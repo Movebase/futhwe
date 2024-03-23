@@ -13,7 +13,7 @@ pub struct AppContext {
 
 pub async fn serve() -> anyhow::Result<()> {
     // health check
-    let (mut health_reporter, health_service) = tonic_health::server::health_reporter();
+    let (mut health_reporter, health_server) = tonic_health::server::health_reporter();
     health_reporter
         .set_serving::<FuthweServer<FuthweService>>()
         .await;
@@ -26,17 +26,15 @@ pub async fn serve() -> anyhow::Result<()> {
 
     let layer = tower::ServiceBuilder::new().into_inner();
 
-    let dataleak_service = FuthweService {
-        db: Arc::clone(&ctx.db),
-    };
-    let dataleak_service = FuthweServer::new(dataleak_service);
+    let futhwe_service = FuthweService {};
+    let futhwe_server = FuthweServer::new(futhwe_service);
 
     info!("gRPC server started at {}", addr);
 
     Server::builder()
         .layer(layer)
-        .add_service(health_service)
-        .add_service(dataleak_service)
+        .add_service(health_server)
+        .add_service(futhwe_server)
         .serve(addr)
         .await?;
 
