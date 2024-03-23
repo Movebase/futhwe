@@ -1,0 +1,9 @@
+app:
+  host: "127.0.0.1"
+  port: 50051
+
+kafka:
+  broker: ""
+  group_id: ""
+  topics:
+    actions: ""
