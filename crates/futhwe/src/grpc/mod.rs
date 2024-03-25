@@ -1,3 +1,4 @@
+use common::config::Config;
 use std::{sync::Arc, time::Duration};
 use tonic::transport::Server;
 use tonic_health::server::HealthReporter;
@@ -11,7 +12,7 @@ pub struct AppContext {
     pub config: Arc<Config>,
 }
 
-pub async fn serve() -> anyhow::Result<()> {
+pub async fn serve(ctx: AppContext) -> anyhow::Result<()> {
     // health check
     let (mut health_reporter, health_server) = tonic_health::server::health_reporter();
     health_reporter
@@ -19,6 +20,8 @@ pub async fn serve() -> anyhow::Result<()> {
         .await;
 
     tokio::spawn(twiddle_service_status(health_reporter.clone()));
+
+    let config = ctx.config;
 
     let addr = format!("{}:{}", config.app.host, config.app.port)
         .parse()

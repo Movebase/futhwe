@@ -20,4 +20,8 @@ combined.json
 Move.lock
 /w_**/
 
+# macOS
+
 .DS_Store
+
+env.yml

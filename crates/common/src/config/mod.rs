@@ -10,28 +10,12 @@ use crate::utils::finder;
 pub struct App {
     pub host: String,
     pub port: u16,
-    pub app_name: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[allow(unused)]
-pub struct Topics {
-    pub actions: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-#[allow(unused)]
-pub struct Kafka {
-    pub broker: String,
-    pub group_id: String,
-    pub topics: Topics,
 }
 
 #[derive(Debug, Deserialize, Clone)]
 #[allow(unused)]
 pub struct Config {
     pub app: App,
-    pub kafka: Kafka,
 }
 
 impl Config {
@@ -49,7 +33,7 @@ impl Config {
             )
             .build()?;
 
-        let mut cf = cf.try_deserialize::<Self>()?;
+        let cf = cf.try_deserialize::<Self>()?;
         Ok(cf)
     }
 }
