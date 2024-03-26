@@ -9,7 +9,6 @@ use std::{
 };
 
 use ityfuzz::fuzzers::move_fuzzer::{move_fuzzer, MoveFuzzConfig};
-use prost_types::Any;
 use serde_json::json;
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 use tonic::{Request, Response, Status, Streaming};
@@ -46,13 +45,11 @@ impl Futhwe for FuthweService {
 
         let mut vm = Ok(SupportedVm::Move);
 
-        let mut total_bytes = 0;
         let mut dir_path = PathBuf::new();
         let mut out_stream = ReceiverStream::new(rx);
 
         println!("stream started");
         while let Some(Ok(result)) = out_stream.next().await {
-            total_bytes += result.content.len();
             vm = SupportedVm::try_from(result.vm);
 
             dir_path = datastore::create_or_open(result.id).unwrap();
