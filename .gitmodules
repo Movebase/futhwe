@@ -1,3 +1,4 @@
 [submodule "crates/ityfuzz"]
 	path = crates/ityfuzz
 	url = https://github.com/thaind0/ityfuzz.git
+	branch = master
