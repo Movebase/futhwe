@@ -46,9 +46,9 @@ async fn test_offchain_fuzzing(client: &mut FuthweClient<Channel>, vm: Supported
     let request_stream = requests_iter(request_stream);
 
     let response = client.offchain_fuzzing(request_stream).await?;
-    let _ = response.into_inner(); // Discard response (assumed empty for simplicity)
+    let response = response.into_inner(); // Discard response (assumed empty for simplicity)
 
-    println!("Finished sending ZIP file");
+    println!("Response: {:?}", response);
 
     Ok(())
 

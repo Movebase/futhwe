@@ -22,5 +22,5 @@ enum SupportedVM {
   * OffchainFuzzingResponse
   */
 message OffchainFuzzingResponse {
-  
+  string results = 1;
 }
