@@ -1,17 +1,16 @@
-use std::{
-    fs::{create_dir_all, File},
-    io::{Read, Write},
-    path::PathBuf,
-};
+pub mod futhwe {
+    tonic::include_proto!("futhwe");
+}
+
+use std::{fs::OpenOptions, io::Write, path::PathBuf};
 
 use tokio_stream::{wrappers::ReceiverStream, StreamExt};
 use tonic::{Request, Response, Status, Streaming};
 
-use crate::grpc::futhwe::futhwe::{OffchainFuzzingRequest, OffchainFuzzingResponse};
-
-pub mod futhwe {
-    tonic::include_proto!("futhwe");
-}
+use crate::{
+    grpc::futhwe::futhwe::{OffchainFuzzingRequest, OffchainFuzzingResponse},
+    utils::datastore,
+};
 
 pub use futhwe::futhwe_server::{Futhwe, FuthweServer};
 
@@ -39,26 +38,31 @@ impl Futhwe for FuthweService {
         });
 
         println!("stream started");
-
+        let mut total_bytes = 0;
+        let mut dir_path = PathBuf::new();
         let mut out_stream = ReceiverStream::new(rx);
+
         while let Some(Ok(result)) = out_stream.next().await {
-            let user_id = result.id; // Extract user ID from the request
-            let mut dir_path = PathBuf::from(std::env::current_dir().unwrap());
-            dir_path.push(user_id.to_string()); // Create directory with user ID
+            total_bytes += result.content.len();
+            dir_path = datastore::create_or_open(result.id).unwrap();
+            let file_path = dir_path.clone().join("build.zip");
 
-            if !dir_path.exists() {
-                create_dir_all(&dir_path).unwrap_or_else(|_| {
-                    eprintln!("Error creating directory: {:?}", dir_path);
-                });
-            }
+            let mut file = OpenOptions::new()
+                .write(true)
+                .append(true)
+                .create(true)
+                .open(file_path)
+                .unwrap();
 
-            let mut file_path = dir_path.clone();
-            file_path.push("build.zip"); // Create file path with "build.zip"
-            let mut file = File::create(file_path).unwrap();
             file.write_all(&result.content).unwrap();
         }
 
-        println!("stream ended");
+        println!("stream ended with {} bytes", total_bytes);
+
+        // unzip
+        datastore::unzip_file(dir_path, "build.zip").unwrap();
+        // remove directory
+        // let _ = std::fs::remove_dir_all(dir_path);
 
         Ok(Response::new(OffchainFuzzingResponse {}))
     }
