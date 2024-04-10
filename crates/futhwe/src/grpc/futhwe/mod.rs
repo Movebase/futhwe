@@ -1,5 +1,5 @@
 pub mod futhwe {
-    tonic::include_proto!("futhwe");
+    tonic::include_proto!("futhwe.v1");
 }
 
 use std::{
@@ -107,22 +107,30 @@ impl Futhwe for FuthweService {
             }
         }
 
+        let mut replay: Vec<serde_json::Value> = Vec::new();
+
         if output_file.is_file() {
             // read the content as String
-            let mut result: Vec<serde_json::Value> = Vec::new();
             for line in std::fs::read_to_string(output_file).unwrap().lines() {
+                replay.push(json!(line));
+            }
+        }
+
+        let vuln_info = dir_path.clone().join("vuln_info.jsonl");
+        let mut result: Vec<serde_json::Value> = Vec::new();
+
+        if vuln_info.is_file() {
+            for line in std::fs::read_to_string(vuln_info).unwrap().lines() {
                 result.push(json!(line));
             }
-
-            return Ok(Response::new(OffchainFuzzingResponse {
-                results: serde_json::to_string(&result).unwrap(),
-            }));
         }
+
         // remove directory
         // let _ = std::fs::remove_dir_all(dir_path);
 
-        Ok(Response::new(OffchainFuzzingResponse {
-            results: "".to_string(),
-        }))
+        let replay = serde_json::to_string(&replay).unwrap();
+        let result = serde_json::to_string(&result).unwrap();
+
+        return Ok(Response::new(OffchainFuzzingResponse { replay, result }));
     }
 }

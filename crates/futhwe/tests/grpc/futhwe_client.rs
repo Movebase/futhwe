@@ -1,5 +1,5 @@
 pub mod futhwe {
-    tonic::include_proto!("futhwe");
+    tonic::include_proto!("futhwe.v1");
 }
 
 use std::{fs::File, io::Read};

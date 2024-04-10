@@ -1,5 +1,5 @@
 syntax = "proto3";
-package futhwe;
+package futhwe.v1;
 
 service Futhwe {
     rpc OffchainFuzzing (stream OffchainFuzzingRequest) returns (OffchainFuzzingResponse) {}
@@ -22,5 +22,6 @@ enum SupportedVM {
   * OffchainFuzzingResponse
   */
 message OffchainFuzzingResponse {
-  string results = 1;
+  string result = 1;
+  string replay = 2;
 }
