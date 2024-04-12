@@ -2,7 +2,7 @@ syntax = "proto3";
 package futhwe.v1;
 
 service Futhwe {
-    rpc OffchainFuzzing (stream OffchainFuzzingRequest) returns (OffchainFuzzingResponse) {}
+    rpc OffchainFuzzing (OffchainFuzzingRequest) returns (OffchainFuzzingResponse) {}
 }
 
 enum SupportedVM {

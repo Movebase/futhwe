@@ -10,8 +10,7 @@ use std::{
 
 use ityfuzz::fuzzers::move_fuzzer::{move_fuzzer, MoveFuzzConfig};
 use serde_json::json;
-use tokio_stream::{wrappers::ReceiverStream, StreamExt};
-use tonic::{Request, Response, Status, Streaming};
+use tonic::{Request, Response, Status};
 
 use crate::{
     grpc::futhwe::futhwe::{OffchainFuzzingRequest, OffchainFuzzingResponse, SupportedVm},
@@ -26,45 +25,24 @@ pub struct FuthweService {}
 impl Futhwe for FuthweService {
     async fn offchain_fuzzing(
         &self,
-        request: Request<Streaming<OffchainFuzzingRequest>>,
+        request: Request<OffchainFuzzingRequest>,
     ) -> Result<Response<OffchainFuzzingResponse>, Status> {
-        let mut in_stream = request.into_inner();
-        let (tx, rx) = tokio::sync::mpsc::channel(128);
+        let request = request.into_inner();
+        println!("{:?}", request);
+        let vm = SupportedVm::try_from(request.vm);
 
-        tokio::spawn(async move {
-            while let Some(result) = in_stream.next().await {
-                match result {
-                    Ok(v) => tx.send(Ok(v)).await.expect("working rx"),
-                    Err(err) => match tx.send(Err(err)).await {
-                        Ok(_) => (),
-                        Err(_err) => break, // response was droped
-                    },
-                }
-            }
-        });
+        let dir_path = datastore::create_or_open(request.id).unwrap();
 
-        let mut vm = Ok(SupportedVm::Move);
+        let file_path = dir_path.clone().join("build.zip");
 
-        let mut dir_path = PathBuf::new();
-        let mut out_stream = ReceiverStream::new(rx);
+        let mut file = OpenOptions::new()
+            .write(true)
+            .append(true)
+            .create(true)
+            .open(file_path)
+            .unwrap();
 
-        println!("stream started");
-        while let Some(Ok(result)) = out_stream.next().await {
-            vm = SupportedVm::try_from(result.vm);
-
-            dir_path = datastore::create_or_open(result.id).unwrap();
-
-            let file_path = dir_path.clone().join("build.zip");
-
-            let mut file = OpenOptions::new()
-                .write(true)
-                .append(true)
-                .create(true)
-                .open(file_path)
-                .unwrap();
-
-            file.write_all(&result.content).unwrap();
-        }
+        file.write_all(&request.content).unwrap();
 
         if vm.is_err() {
             return Err(Status::data_loss("Invalid request"));
@@ -126,7 +104,7 @@ impl Futhwe for FuthweService {
         }
 
         // remove directory
-        // let _ = std::fs::remove_dir_all(dir_path);
+        let _ = std::fs::remove_dir_all(dir_path);
 
         let replay = serde_json::to_string(&replay).unwrap();
         let result = serde_json::to_string(&result).unwrap();
