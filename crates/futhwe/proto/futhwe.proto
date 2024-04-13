@@ -14,9 +14,9 @@ enum SupportedVM {
  * OffchainFuzzingRequest
  */
  message OffchainFuzzingRequest {
-    bytes content = 1;
-    string id = 2;
-    SupportedVM vm = 3;
+   string name = 2;
+   SupportedVM vm = 3;
+   string base64_content = 1;
  }
  /*
   * OffchainFuzzingResponse

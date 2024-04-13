@@ -5,30 +5,25 @@ pub mod futhwe {
 use std::{fs::File, io::Read};
 
 use anyhow::Result;
+use base64::Engine;
 use futhwe::futhwe_client::FuthweClient;
-use tokio_stream::Stream;
 use tonic::transport::Channel;
 
 use self::futhwe::{OffchainFuzzingRequest, SupportedVm};
-
-fn requests_iter(
-    request: Vec<OffchainFuzzingRequest>,
-) -> impl Stream<Item = OffchainFuzzingRequest> {
-    tokio_stream::iter(request)
-}
 
 async fn test_offchain_fuzzing(client: &mut FuthweClient<Channel>, vm: SupportedVm) -> Result<()> {
     let file_path = std::env::var("FILE_PATH").expect("FILE_PATH must be set");
     let mut file = File::open(file_path).unwrap();
 
-    let id = "test".to_string();
+    let name = "test".to_string();
     let mut content = vec![];
     file.read_to_end(&mut content)?;
+    let base64_content = base64::engine::general_purpose::STANDARD.encode(content);
 
     let request = OffchainFuzzingRequest {
-        content,
-        id: id.clone(),
+        name,
         vm: vm as i32,
+        base64_content,
     };
 
     let response = client.offchain_fuzzing(request).await?;

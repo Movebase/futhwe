@@ -8,9 +8,11 @@ use std::{
     path::PathBuf,
 };
 
+use base64::Engine;
 use ityfuzz::fuzzers::move_fuzzer::{move_fuzzer, MoveFuzzConfig};
 use serde_json::json;
 use tonic::{Request, Response, Status};
+use uuid::Uuid;
 
 use crate::{
     grpc::futhwe::futhwe::{OffchainFuzzingRequest, OffchainFuzzingResponse, SupportedVm},
@@ -28,10 +30,9 @@ impl Futhwe for FuthweService {
         request: Request<OffchainFuzzingRequest>,
     ) -> Result<Response<OffchainFuzzingResponse>, Status> {
         let request = request.into_inner();
-        println!("{:?}", request);
         let vm = SupportedVm::try_from(request.vm);
-
-        let dir_path = datastore::create_or_open(request.id).unwrap();
+        let id = Uuid::new_v4().to_string();
+        let dir_path = datastore::create_or_open(id).unwrap();
 
         let file_path = dir_path.clone().join("build.zip");
 
@@ -41,15 +42,19 @@ impl Futhwe for FuthweService {
             .create(true)
             .open(file_path)
             .unwrap();
+        let bytes_content = base64::engine::general_purpose::STANDARD
+            .decode(request.base64_content)
+            .map_err(|_| Status::data_loss("Invalid request"))?;
 
-        file.write_all(&request.content).unwrap();
+        file.write_all(&bytes_content).unwrap();
 
         if vm.is_err() {
             return Err(Status::data_loss("Invalid request"));
         }
 
         // unzip
-        datastore::unzip_file(dir_path.clone(), "build.zip").unwrap();
+        datastore::unzip_file(dir_path.clone(), "build.zip")
+            .map_err(|_| Status::data_loss("Failed to unzip file"))?;
 
         let vm = vm.unwrap();
 
