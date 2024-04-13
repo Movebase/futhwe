@@ -21,31 +21,17 @@ async fn test_offchain_fuzzing(client: &mut FuthweClient<Channel>, vm: Supported
     let file_path = std::env::var("FILE_PATH").expect("FILE_PATH must be set");
     let mut file = File::open(file_path).unwrap();
 
-    let mut buffer = [0; 1024];
-
-    let mut request_stream = Vec::new();
-
     let id = "test".to_string();
-    println!("Sending ZIP file");
-    loop {
-        let read_bytes = file.read(&mut buffer)?;
-        if read_bytes == 0 {
-            break;
-        }
-        let content = buffer[..read_bytes].to_vec();
-        let request = OffchainFuzzingRequest {
-            content,
-            id: id.clone(),
-            vm: vm as i32,
-        };
+    let mut content = vec![];
+    file.read_to_end(&mut content)?;
 
-        request_stream.push(request);
+    let request = OffchainFuzzingRequest {
+        content,
+        id: id.clone(),
+        vm: vm as i32,
+    };
 
-        println!("Sent chunk of {} bytes", read_bytes);
-    }
-    let request_stream = requests_iter(request_stream);
-
-    let response = client.offchain_fuzzing(request_stream).await?;
+    let response = client.offchain_fuzzing(request).await?;
     let response = response.into_inner(); // Discard response (assumed empty for simplicity)
 
     println!("Response: {:?}", response);
