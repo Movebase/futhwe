@@ -1,5 +1,8 @@
 pub mod futhwe {
     tonic::include_proto!("futhwe.v1");
+
+    pub(crate) const FILE_DESCRIPTOR_SET: &[u8] =
+        tonic::include_file_descriptor_set!("app_descriptor");
 }
 
 use std::{

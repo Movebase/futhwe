@@ -13,14 +13,6 @@ pub struct AppContext {
 }
 
 pub async fn serve(ctx: AppContext) -> anyhow::Result<()> {
-    // health check
-    let (mut health_reporter, health_server) = tonic_health::server::health_reporter();
-    health_reporter
-        .set_serving::<FuthweServer<FuthweService>>()
-        .await;
-
-    tokio::spawn(twiddle_service_status(health_reporter.clone()));
-
     let config = ctx.config;
 
     let addr = format!("{}:{}", config.app.host, config.app.port)
@@ -34,10 +26,25 @@ pub async fn serve(ctx: AppContext) -> anyhow::Result<()> {
 
     info!("gRPC server started at {}", addr);
 
+    // Health check
+    let (mut health_reporter, health_server) = tonic_health::server::health_reporter();
+    health_reporter
+        .set_serving::<FuthweServer<FuthweService>>()
+        .await;
+
+    tokio::spawn(twiddle_service_status(health_reporter.clone()));
+
+    // Reflection
+    let reflection_service = tonic_reflection::server::Builder::configure()
+        .register_encoded_file_descriptor_set(futhwe::futhwe::FILE_DESCRIPTOR_SET)
+        .build()
+        .unwrap();
+
     Server::builder()
         .layer(layer)
         .add_service(health_server)
         .add_service(futhwe_server)
+        .add_service(reflection_service)
         .serve(addr)
         .await?;
 
